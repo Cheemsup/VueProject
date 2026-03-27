@@ -1,25 +1,60 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import Login from '../views/Login.vue'
+import Dashboard from '../views/Dashboard.vue'
+import DashboardUser from '../views/DashboardUser.vue'
 
 const routes = [
   {
     path: '/',
     name: 'home',
-    component: HomeView
+    // component: HomeView
+    redirect: '/dashboard-user'
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: Login
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: Dashboard,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard-user',
+    name: 'dashboard-user',
+    component: DashboardUser,
+    meta: { requiresAuth: true }
   },
   {
     path: '/about',
     name: 'about',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
+    component: () => import('../views/AboutView.vue')
   }
 ]
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes
+})
+
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = localStorage.getItem('username')
+  const userRole = localStorage.getItem('userRole')
+  
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next('/login')
+  } else if (to.path === '/login' && isAuthenticated && !to.query.force) {
+    if (userRole === 'admin') {
+      next('/dashboard')
+    } else {
+      next('/dashboard-user')
+    }
+  } else {
+    next()
+  }
 })
 
 export default router
