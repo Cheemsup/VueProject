@@ -3,38 +3,38 @@
     <el-container class="layout-container">
       <el-aside width="200px" class="sidebar">
         <div class="logo">
-          <h2>我的超市</h2>
+          <h2>用户中心</h2>
         </div>
         <el-menu
-          :default-active="activeCategory"
+          :default-active="activeMenu"
           class="sidebar-menu"
-          @select="handleCategorySelect"
+          @select="handleMenuSelect"
         >
-          <el-menu-item index="all">
-            <el-icon><Shop /></el-icon>
-            <span>全部商品</span>
+          <el-menu-item index="dashboard">
+            <el-icon><HomeFilled /></el-icon>
+            <span>首页</span>
           </el-menu-item>
-          <el-menu-item
-            v-for="cat in categories"
-            :key="cat.id"
-            :index="cat.id"
-          >
-            <el-icon><component :is="cat.icon" /></el-icon>
-            <span>{{ cat.name }}</span>
+          <el-menu-item index="profile">
+            <el-icon><User /></el-icon>
+            <span>个人信息</span>
+          </el-menu-item>
+          <el-menu-item index="orders">
+            <el-icon><Document /></el-icon>
+            <span>我的订单</span>
+          </el-menu-item>
+          <el-menu-item index="settings">
+            <el-icon><Setting /></el-icon>
+            <span>设置</span>
           </el-menu-item>
         </el-menu>
-
-        <div class="cart-summary" @click="showCart = true">
-          <el-icon><ShoppingCart /></el-icon>
-          <span>购物车</span>
-          <el-badge :value="cartCount" :hidden="cartCount === 0" />
-        </div>
       </el-aside>
-
+      
       <el-container>
         <el-header class="header">
           <div class="header-left">
-            <span class="page-title">购物</span>
+            <el-button text @click="toggleSidebar">
+              <el-icon><Fold /></el-icon>
+            </el-button>
           </div>
           <div class="header-right">
             <el-dropdown @command="handleCommand">
@@ -46,164 +46,210 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="profile">个人信息</el-dropdown-item>
-                  <el-dropdown-item command="orders">我的订单</el-dropdown-item>
+                  <el-dropdown-item command="settings">设置</el-dropdown-item>
                   <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
           </div>
         </el-header>
-
+        
         <el-main class="main-content">
           <div class="content-wrapper">
-            <div class="filter-bar">
-              <el-input
-                v-model="searchKeyword"
-                placeholder="搜索商品..."
-                clearable
-                class="search-input"
-              >
-                <template #prefix>
-                  <el-icon><Search /></el-icon>
-                </template>
-              </el-input>
-
-              <div class="filter-controls">
-                <el-popover
-                  placement="bottom-start"
-                  :width="300"
-                  trigger="click"
-                >
-                  <template #reference>
-                    <el-button>
-                      <el-icon><Filter /></el-icon>
-                      筛选
-                      <el-badge v-if="activeFilterCount > 0" :value="activeFilterCount" />
+            <div v-if="activeMenu === 'dashboard'" class="shopping-content">
+              <div class="category-nav">
+                <el-radio-group v-model="activeCategory" size="default">
+                  <el-radio-button label="all">全部商品</el-radio-button>
+                  <el-radio-button
+                    v-for="cat in categories"
+                    :key="cat.id"
+                    :label="cat.id"
+                  >
+                    <el-icon><component :is="cat.icon" /></el-icon>
+                    {{ cat.name }}
+                  </el-radio-button>
+                </el-radio-group>
+                <div class="nav-right">
+                  <el-input
+                    v-model="searchKeyword"
+                    placeholder="搜索商品..."
+                    clearable
+                    class="search-input"
+                  >
+                    <template #prefix>
+                      <el-icon><Search /></el-icon>
+                    </template>
+                  </el-input>
+                  <el-badge :value="cartCount" :hidden="cartCount === 0" class="cart-badge">
+                    <el-button @click="showCart = true">
+                      <el-icon><ShoppingCart /></el-icon>
+                      购物车
                     </el-button>
-                  </template>
-                  <div class="filter-content">
-                    <div class="filter-section">
-                      <h4>价格区间</h4>
-                      <el-slider
-                        v-model="pendingPriceRange"
-                        range
-                        :min="0"
-                        :max="50"
-                        :step="1"
-                        :format-tooltip="formatPriceTooltip"
-                      />
-                      <div class="price-labels">
-                        <span>¥{{ pendingPriceRange[0] }}</span>
-                        <span>¥{{ pendingPriceRange[1] }}</span>
+                  </el-badge>
+                </div>
+              </div>
+
+              <div v-if="activeCategory === 'all' && !searchKeyword && activeFilterCount === 0" class="hot-section">
+                <h3 class="section-title">
+                  <el-icon><Star /></el-icon>
+                  热销推荐
+                </h3>
+                <div class="products-grid">
+                  <div
+                    v-for="product in hotProducts"
+                    :key="product.id"
+                    class="product-card"
+                    @click="addToCart(product)"
+                  >
+                    <div class="product-image">
+                      <img v-if="product.image" :src="product.image" :alt="product.name" @error="handleImageError" />
+                      <div v-else class="image-placeholder">
+                        <el-icon><Goods /></el-icon>
+                      </div>
+                      <div v-if="product.discount < 1" class="discount-tag">
+                        {{ Math.round(product.discount * 10) }}折
                       </div>
                     </div>
-
-                    <div class="filter-section">
-                      <h4>商品标签</h4>
-                      <el-check-tag
-                        v-for="tag in allTags"
-                        :key="tag"
-                        :checked="pendingSelectedTags.includes(tag)"
-                        @change="toggleTag(tag)"
-                        class="tag-filter-item"
-                      >
-                        {{ tag }}
-                      </el-check-tag>
+                    <div class="product-info">
+                      <h4 class="product-name">{{ product.name }}</h4>
+                      <p class="product-desc">{{ product.description }}</p>
+                      <div class="product-price">
+                        <span class="current-price">¥{{ (product.price * product.discount).toFixed(2) }}</span>
+                        <span v-if="product.discount < 1" class="original-price">¥{{ product.price.toFixed(2) }}</span>
+                      </div>
+                      <div class="product-tags">
+                        <el-tag v-for="tag in product.tags" :key="tag" size="small" type="info">{{ tag }}</el-tag>
+                      </div>
                     </div>
-
-                    <div class="filter-actions">
-                      <el-button size="small" @click="clearFilters">清除筛选</el-button>
-                      <el-button type="primary" size="small" @click="applyFilters">应用</el-button>
+                    <div class="product-action">
+                      <el-button type="primary" @click.stop="addToCart(product)">
+                        <el-icon><Plus /></el-icon>
+                        加入购物车
+                      </el-button>
                     </div>
                   </div>
-                </el-popover>
+                </div>
+              </div>
+
+              <div class="products-section">
+                <h3 class="section-title">
+                  <el-icon><Shop /></el-icon>
+                  {{ currentCategoryName }}
+                </h3>
+                <div v-if="filteredProducts.length > 0" class="products-grid">
+                  <div
+                    v-for="product in filteredProducts"
+                    :key="product.id"
+                    class="product-card"
+                    @click="addToCart(product)"
+                  >
+                    <div class="product-image">
+                      <img v-if="product.image" :src="product.image" :alt="product.name" @error="handleImageError" />
+                      <div v-else class="image-placeholder">
+                        <el-icon><Goods /></el-icon>
+                      </div>
+                      <div v-if="product.discount < 1" class="discount-tag">
+                        {{ Math.round(product.discount * 10) }}折
+                      </div>
+                    </div>
+                    <div class="product-info">
+                      <h4 class="product-name">{{ product.name }}</h4>
+                      <p class="product-desc">{{ product.description }}</p>
+                      <div class="product-price">
+                        <span class="current-price">¥{{ (product.price * product.discount).toFixed(2) }}</span>
+                        <span v-if="product.discount < 1" class="original-price">¥{{ product.price.toFixed(2) }}</span>
+                        <span class="unit">/{{ product.unit }}</span>
+                      </div>
+                      <div class="product-tags">
+                        <el-tag v-for="tag in product.tags" :key="tag" size="small" type="info">{{ tag }}</el-tag>
+                      </div>
+                    </div>
+                    <div class="product-action">
+                      <el-button type="primary" @click.stop="addToCart(product)">
+                        <el-icon><Plus /></el-icon>
+                        加入购物车
+                      </el-button>
+                    </div>
+                  </div>
+                </div>
+                <el-empty v-else description="暂无商品" />
               </div>
             </div>
-
-            <div v-if="activeCategory === 'all' && !searchKeyword && activeFilterCount === 0" class="hot-section">
-              <h3 class="section-title">
-                <el-icon><Star /></el-icon>
-                热销推荐
-              </h3>
-              <div class="products-grid">
-                <div
-                  v-for="product in hotProducts"
-                  :key="product.id"
-                  class="product-card"
-                  @click="addToCart(product)"
-                >
-                  <div class="product-image">
-                    <img v-if="product.image" :src="product.image" :alt="product.name" @error="handleImageError" />
-                    <div v-else class="image-placeholder">
-                      <el-icon><Goods /></el-icon>
+            
+            <div v-else-if="activeMenu === 'profile'" class="page-content">
+              <h2>个人信息</h2>
+              <el-form label-width="100px" class="profile-form">
+                <el-form-item label="用户名">
+                  <el-input v-model="userInfo.username" disabled />
+                </el-form-item>
+                <el-form-item label="邮箱">
+                  <el-input v-model="userInfo.email" />
+                </el-form-item>
+                <el-form-item label="手机号">
+                  <el-input v-model="userInfo.phone" />
+                </el-form-item>
+                <el-form-item label="地址">
+                  <el-input v-model="userInfo.address" />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary">保存修改</el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+            
+            <div v-else-if="activeMenu === 'orders'" class="page-content">
+              <h2>我的订单</h2>
+              <el-empty v-if="orders.length === 0" description="暂无订单" />
+              <div v-else class="orders-list">
+                <div v-for="order in orders" :key="order.id" class="order-card">
+                  <div class="order-header">
+                    <div class="order-info">
+                      <span class="order-id">订单号：{{ order.id }}</span>
+                      <span class="order-date">{{ order.date }}</span>
                     </div>
-                    <div v-if="product.discount < 1" class="discount-tag">
-                      {{ Math.round(product.discount * 10) }}折
+                    <el-tag :type="getStatusType(order.status)" size="large">
+                      {{ order.status }}
+                    </el-tag>
+                  </div>
+                  <div class="order-items">
+                    <div v-for="item in order.items" :key="item.productId" class="order-item">
+                      <span class="item-name">{{ item.name }}</span>
+                      <span class="item-quantity">x{{ item.quantity }}</span>
+                      <span class="item-price">¥{{ item.subtotal }}</span>
                     </div>
                   </div>
-                  <div class="product-info">
-                    <h4 class="product-name">{{ product.name }}</h4>
-                    <p class="product-desc">{{ product.description }}</p>
-                    <div class="product-price">
-                      <span class="current-price">¥{{ (product.price * product.discount).toFixed(2) }}</span>
-                      <span v-if="product.discount < 1" class="original-price">¥{{ product.price.toFixed(2) }}</span>
+                  <div class="order-footer">
+                    <div class="order-summary">
+                      共 <strong>{{ order.itemCount }}</strong> 件商品
+                      <span class="order-total">合计：<strong>¥{{ order.totalAmount }}</strong></span>
                     </div>
-                    <div class="product-tags">
-                      <el-tag v-for="tag in product.tags" :key="tag" size="small" type="info">{{ tag }}</el-tag>
-                    </div>
-                  </div>
-                  <div class="product-action">
-                    <el-button type="primary" @click.stop="addToCart(product)">
-                      <el-icon><Plus /></el-icon>
-                      加入购物车
+                    <el-button type="primary" size="small" @click="viewOrderDetail(order)">
+                      查看详情
                     </el-button>
                   </div>
                 </div>
               </div>
             </div>
-
-            <div class="products-section">
-              <h3 class="section-title">
-                <el-icon><Shop /></el-icon>
-                {{ currentCategoryName }}
-              </h3>
-              <div v-if="filteredProducts.length > 0" class="products-grid">
-                <div
-                  v-for="product in filteredProducts"
-                  :key="product.id"
-                  class="product-card"
-                  @click="addToCart(product)"
-                >
-                  <div class="product-image">
-                    <img v-if="product.image" :src="product.image" :alt="product.name" @error="handleImageError" />
-                    <div v-else class="image-placeholder">
-                      <el-icon><Goods /></el-icon>
-                    </div>
-                    <div v-if="product.discount < 1" class="discount-tag">
-                      {{ Math.round(product.discount * 10) }}折
-                    </div>
-                  </div>
-                  <div class="product-info">
-                    <h4 class="product-name">{{ product.name }}</h4>
-                    <p class="product-desc">{{ product.description }}</p>
-                    <div class="product-price">
-                      <span class="current-price">¥{{ (product.price * product.discount).toFixed(2) }}</span>
-                      <span v-if="product.discount < 1" class="original-price">¥{{ product.price.toFixed(2) }}</span>
-                      <span class="unit">/{{ product.unit }}</span>
-                    </div>
-                    <div class="product-tags">
-                      <el-tag v-for="tag in product.tags" :key="tag" size="small" type="info">{{ tag }}</el-tag>
-                    </div>
-                  </div>
-                  <div class="product-action">
-                    <el-button type="primary" @click.stop="addToCart(product)">
-                      <el-icon><Plus /></el-icon>
-                      加入购物车
-                    </el-button>
-                  </div>
-                </div>
-              </div>
-              <el-empty v-else description="暂无商品" />
+            
+            <div v-else-if="activeMenu === 'settings'" class="page-content">
+              <h2>账户设置</h2>
+              <el-form label-width="120px">
+                <el-form-item label="通知设置">
+                  <el-switch v-model="settings.notifications" />
+                </el-form-item>
+                <el-form-item label="消息提醒">
+                  <el-switch v-model="settings.messageAlert" />
+                </el-form-item>
+                <el-form-item label="语言">
+                  <el-select v-model="settings.language">
+                    <el-option label="中文" value="zh" />
+                    <el-option label="English" value="en" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary">保存设置</el-button>
+                </el-form-item>
+              </el-form>
             </div>
           </div>
         </el-main>
@@ -253,6 +299,59 @@
         </div>
       </div>
     </el-drawer>
+
+    <el-drawer
+      v-model="showOrderDetail"
+      title="订单详情"
+      direction="rtl"
+      size="450px"
+    >
+      <div v-if="currentOrderDetail" class="order-detail-content">
+        <div class="detail-section">
+          <div class="detail-row">
+            <span class="detail-label">订单号</span>
+            <span class="detail-value">{{ currentOrderDetail.id }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">下单时间</span>
+            <span class="detail-value">{{ currentOrderDetail.date }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">订单状态</span>
+            <el-tag :type="getStatusType(currentOrderDetail.status)">
+              {{ currentOrderDetail.status }}
+            </el-tag>
+          </div>
+        </div>
+        
+        <div class="detail-section">
+          <h4>商品清单</h4>
+          <div class="detail-items">
+            <div v-for="item in currentOrderDetail.items" :key="item.productId" class="detail-item">
+              <div class="detail-item-info">
+                <span class="detail-item-name">{{ item.name }}</span>
+                <span class="detail-item-spec">¥{{ item.price }}/{{ item.unit }}</span>
+              </div>
+              <div class="detail-item-right">
+                <span class="detail-item-quantity">x{{ item.quantity }}</span>
+                <span class="detail-item-subtotal">¥{{ item.subtotal }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="detail-footer">
+          <div class="detail-total-row">
+            <span>商品数量</span>
+            <span>{{ currentOrderDetail.itemCount }} 件</span>
+          </div>
+          <div class="detail-total-row total-amount">
+            <span>订单总额</span>
+            <span class="amount-value">¥{{ currentOrderDetail.totalAmount }}</span>
+          </div>
+        </div>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
@@ -260,11 +359,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import {
+import { 
+  HomeFilled, 
+  User, 
+  Document, 
+  Setting, 
+  Fold, 
+  Avatar, 
+  ArrowDown,
   Shop,
   ShoppingCart,
-  Avatar,
-  ArrowDown,
   Search,
   Star,
   Goods,
@@ -274,18 +378,23 @@ import {
   Milk,
   Food,
   Apple,
-  Biscuit,
-  Filter
+  Biscuit
 } from '@element-plus/icons-vue'
 import { categories, products, hotProducts, getProductsByCategory } from '@/data/products.js'
+import { getOrders, createOrder } from '@/data/orders.js'
 
 export default {
   name: 'DashboardUser',
   components: {
-    Shop,
-    ShoppingCart,
+    HomeFilled,
+    User,
+    Document,
+    Setting,
+    Fold,
     Avatar,
     ArrowDown,
+    Shop,
+    ShoppingCart,
     Search,
     Star,
     Goods,
@@ -295,57 +404,63 @@ export default {
     Milk,
     Food,
     Apple,
-    Biscuit,
-    Filter
+    Biscuit
   },
   setup() {
     const router = useRouter()
-    const activeCategory = ref('all')
+    const activeMenu = ref('dashboard')
     const currentUser = ref('')
+    const isCollapsed = ref(false)
+    
+    const activeCategory = ref('all')
     const searchKeyword = ref('')
     const showCart = ref(false)
-    const imageLoadFailed = ref(new Set())
-
     const priceRange = ref([0, 50])
     const selectedTags = ref([])
     const pendingPriceRange = ref([0, 50])
     const pendingSelectedTags = ref([])
-
     const cartItems = ref([])
-
-    onMounted(() => {
-      const username = localStorage.getItem('username')
-      currentUser.value = username || '用户'
-
-      const savedCart = localStorage.getItem('cartItems')
-      if (savedCart) {
-        cartItems.value = JSON.parse(savedCart)
-      }
+    
+    const userInfo = ref({
+      username: '',
+      email: 'user@example.com',
+      phone: '13800138000',
+      address: '北京市朝阳区'
     })
-
+    
+    const orders = ref([])
+    const showOrderDetail = ref(false)
+    const currentOrderDetail = ref(null)
+    
+    const settings = ref({
+      notifications: true,
+      messageAlert: true,
+      language: 'zh'
+    })
+    
     const allTags = computed(() => {
       const tags = new Set()
       products.forEach(p => p.tags.forEach(tag => tags.add(tag)))
       return Array.from(tags).sort()
     })
-
+    
     const activeFilterCount = computed(() => {
       let count = 0
       if (priceRange.value[0] > 0 || priceRange.value[1] < 50) count++
       if (selectedTags.value.length > 0) count += selectedTags.value.length
       return count
     })
-
+    
     const currentCategoryName = computed(() => {
       if (searchKeyword.value) return '搜索结果'
       if (activeCategory.value === 'all') return '全部商品'
       const cat = categories.find(c => c.id === activeCategory.value)
       return cat ? cat.name : '商品'
     })
-
+    
     const filteredProducts = computed(() => {
       let result = getProductsByCategory(activeCategory.value)
-
+      
       if (searchKeyword.value) {
         const keyword = searchKeyword.value.toLowerCase()
         result = result.filter(p =>
@@ -354,69 +469,83 @@ export default {
           p.tags.some(tag => tag.toLowerCase().includes(keyword))
         )
       }
-
+      
       result = result.filter(p => {
         const finalPrice = p.price * p.discount
         return finalPrice >= priceRange.value[0] && finalPrice <= priceRange.value[1]
       })
-
+      
       if (selectedTags.value.length > 0) {
         result = result.filter(p =>
           selectedTags.value.some(tag => p.tags.includes(tag))
         )
       }
-
+      
       return result
     })
-
+    
     const cartCount = computed(() => {
       return cartItems.value.reduce((sum, item) => sum + item.quantity, 0)
     })
-
+    
     const cartTotal = computed(() => {
       return cartItems.value.reduce((sum, item) => {
         return sum + item.price * item.discount * item.quantity
       }, 0)
     })
-
-    const handleCategorySelect = (index) => {
-      activeCategory.value = index
-      searchKeyword.value = ''
+    
+    onMounted(() => {
+      const username = localStorage.getItem('username')
+      currentUser.value = username || '用户'
+      userInfo.value.username = username || '用户'
+      
+      const savedCart = localStorage.getItem('cartItems')
+      if (savedCart) {
+        cartItems.value = JSON.parse(savedCart)
+      }
+      
+      orders.value = getOrders()
+    })
+    
+    const handleMenuSelect = (index) => {
+      activeMenu.value = index
     }
-
-    const formatPriceTooltip = (val) => {
-      return `¥${val}`
-    }
-
-    const toggleTag = (tag) => {
-      const index = pendingSelectedTags.value.indexOf(tag)
-      if (index > -1) {
-        pendingSelectedTags.value.splice(index, 1)
-      } else {
-        pendingSelectedTags.value.push(tag)
+    
+    const handleCommand = (command) => {
+      if (command === 'logout') {
+        localStorage.removeItem('username')
+        localStorage.removeItem('userRole')
+        localStorage.removeItem('cartItems')
+        router.push('/login')
+      } else if (command === 'profile') {
+        activeMenu.value = 'profile'
+      } else if (command === 'settings') {
+        activeMenu.value = 'settings'
       }
     }
-
-    const clearFilters = () => {
-      pendingPriceRange.value = [0, 50]
-      pendingSelectedTags.value = []
-      priceRange.value = [0, 50]
-      selectedTags.value = []
+    
+    const toggleSidebar = () => {
+      isCollapsed.value = !isCollapsed.value
     }
-
-    const applyFilters = () => {
-      priceRange.value = [...pendingPriceRange.value]
-      selectedTags.value = [...pendingSelectedTags.value]
+    
+    const getStatusType = (status) => {
+      const statusMap = {
+        '待发货': 'warning',
+        '配送中': 'primary',
+        '已完成': 'success',
+        '已取消': 'danger'
+      }
+      return statusMap[status] || 'info'
     }
-
+    
     const handleImageError = (e) => {
       e.target.style.display = 'none'
       e.target.nextElementSibling && (e.target.nextElementSibling.style.display = 'flex')
     }
-
+    
     const addToCart = (product) => {
       const existingItem = cartItems.value.find(item => item.id === product.id)
-
+      
       if (existingItem) {
         if (existingItem.quantity < existingItem.stock) {
           existingItem.quantity++
@@ -431,14 +560,14 @@ export default {
         })
         ElMessage.success(`已加入购物车：${product.name}`)
       }
-
+      
       saveCart()
     }
-
+    
     const updateCartQuantity = (item) => {
       saveCart()
     }
-
+    
     const removeFromCart = (item) => {
       const index = cartItems.value.findIndex(i => i.id === item.id)
       if (index > -1) {
@@ -447,32 +576,36 @@ export default {
         saveCart()
       }
     }
-
+    
     const saveCart = () => {
       localStorage.setItem('cartItems', JSON.stringify(cartItems.value))
     }
-
+    
     const handleCheckout = () => {
       if (cartItems.value.length === 0) {
         ElMessage.warning('购物车是空的')
         return
       }
-      ElMessage.success('结算功能开发中...')
+      
+      const newOrder = createOrder(cartItems.value, cartTotal.value)
+      
+      orders.value = getOrders()
+      
+      cartItems.value = []
+      localStorage.removeItem('cartItems')
+      
+      showCart.value = false
+      
+      ElMessage.success(`订单 ${newOrder.id} 下单成功！`)
+      
+      activeMenu.value = 'orders'
     }
-
-    const handleCommand = (command) => {
-      if (command === 'logout') {
-        localStorage.removeItem('username')
-        localStorage.removeItem('userRole')
-        localStorage.removeItem('cartItems')
-        router.push('/login')
-      } else if (command === 'orders') {
-        ElMessage.info('订单功能开发中...')
-      } else if (command === 'profile') {
-        ElMessage.info('个人信息功能开发中...')
-      }
+    
+    const viewOrderDetail = (order) => {
+      currentOrderDetail.value = order
+      showOrderDetail.value = true
     }
-
+    
     return {
       categories,
       products,
@@ -492,18 +625,22 @@ export default {
       pendingPriceRange,
       pendingSelectedTags,
       activeFilterCount,
-      imageLoadFailed,
-      handleCategorySelect,
-      formatPriceTooltip,
-      toggleTag,
-      clearFilters,
-      applyFilters,
       handleImageError,
       addToCart,
       updateCartQuantity,
       removeFromCart,
       handleCheckout,
-      handleCommand
+      activeMenu,
+      userInfo,
+      orders,
+      settings,
+      handleMenuSelect,
+      handleCommand,
+      toggleSidebar,
+      getStatusType,
+      showOrderDetail,
+      currentOrderDetail,
+      viewOrderDetail
     }
   }
 }
@@ -522,8 +659,7 @@ export default {
 .sidebar {
   background-color: #42b983;
   color: #fff;
-  display: flex;
-  flex-direction: column;
+  overflow-x: hidden;
 }
 
 .logo {
@@ -543,30 +679,10 @@ export default {
 .sidebar-menu {
   border-right: none;
   background-color: #42b983;
-  flex: 1;
 }
 
-.cart-summary {
-  padding: 20px;
-  background-color: #35a070;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.cart-summary:hover {
-  background-color: #2d8f62;
-}
-
-.cart-summary .el-icon {
-  font-size: 20px;
-}
-
-.cart-summary span {
-  font-size: 14px;
+.sidebar-menu:not(.el-menu--collapse) {
+  width: 200px;
 }
 
 .header {
@@ -581,12 +697,6 @@ export default {
 .header-left {
   display: flex;
   align-items: center;
-}
-
-.page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
 }
 
 .header-right {
@@ -615,62 +725,192 @@ export default {
   min-height: calc(100vh - 140px);
 }
 
-.filter-bar {
+.dashboard-content h1 {
+  margin: 0 0 30px 0;
+  color: #303133;
+}
+
+.welcome-card {
+  display: flex;
+  align-items: center;
+  padding: 30px;
+  background: linear-gradient(135deg, #42b983 0%, #35a070 100%);
+  border-radius: 8px;
+  color: white;
+  margin-bottom: 30px;
+}
+
+.welcome-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20px;
+  font-size: 40px;
+}
+
+.welcome-text h3 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+}
+
+.welcome-text p {
+  margin: 0;
+  opacity: 0.9;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.action-card {
+  padding: 30px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid #e0e0e0;
+}
+
+.action-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(66, 185, 131, 0.3);
+  border-color: #42b983;
+}
+
+.action-card .el-icon {
+  font-size: 40px;
+  color: #42b983;
+}
+
+.action-card span {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.page-content h2 {
+  margin: 0 0 20px 0;
+  color: #303133;
+}
+
+.profile-form {
+  max-width: 500px;
+}
+
+.shopping-content {
+  width: 100%;
+}
+
+.category-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #f5faf7 0%, #e8f5ed 100%);
+  border-radius: 12px;
+  border: 1px solid #d4edda;
+  box-shadow: 0 2px 12px rgba(66, 185, 131, 0.1);
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.category-nav :deep(.el-radio-group) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-nav :deep(.el-radio-button__inner) {
+  border: none;
+  background-color: #fff;
+  color: #606266;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.category-nav :deep(.el-radio-button__inner:hover) {
+  color: #42b983;
+  background-color: #f0f9f4;
+}
+
+.category-nav :deep(.el-radio-button:first-child .el-radio-button__inner) {
+  border-radius: 8px;
+}
+
+.category-nav :deep(.el-radio-button:last-child .el-radio-button__inner) {
+  border-radius: 8px;
+}
+
+.category-nav :deep(.el-radio-button__orig-radio:checked + .el-radio-button__inner) {
+  background: linear-gradient(135deg, #42b983 0%, #35a070 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.4);
+}
+
+.category-nav :deep(.el-radio-button__orig-radio:checked + .el-radio-button__inner:hover) {
+  background: linear-gradient(135deg, #35a070 0%, #2d8f62 100%);
+}
+
+.category-nav :deep(.el-icon) {
+  margin-right: 6px;
+  font-size: 16px;
+}
+
+.nav-right {
   display: flex;
   align-items: center;
   gap: 15px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
 }
 
 .search-input {
-  width: 300px;
+  width: 280px;
 }
 
-.filter-controls .el-button {
+.search-input :deep(.el-input__wrapper) {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.search-input :deep(.el-input__wrapper:hover),
+.search-input :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.2);
+}
+
+.cart-badge {
   display: flex;
   align-items: center;
-  gap: 5px;
 }
 
-.filter-content {
-  padding: 10px 0;
+.cart-badge :deep(.el-button) {
+  background: linear-gradient(135deg, #42b983 0%, #35a070 100%);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.3);
+  transition: all 0.3s ease;
 }
 
-.filter-section {
-  margin-bottom: 20px;
-}
-
-.filter-section:last-child {
-  margin-bottom: 0;
-}
-
-.filter-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #303133;
-  font-weight: 600;
-}
-
-.price-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
-  font-size: 12px;
-  color: #606266;
-}
-
-.tag-filter-item {
-  margin: 0 8px 8px 0;
-}
-
-.filter-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #e0e0e0;
+.cart-badge :deep(.el-button:hover) {
+  background: linear-gradient(135deg, #35a070 0%, #2d8f62 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.4);
 }
 
 .section-title {
@@ -907,5 +1147,210 @@ export default {
 .checkout-btn:hover {
   background-color: #35a070;
   border-color: #35a070;
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.order-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
+.order-card:hover {
+  box-shadow: 0 4px 16px rgba(66, 185, 131, 0.15);
+  border-color: #42b983;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f5faf7 0%, #e8f5ed 100%);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.order-info {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.order-id {
+  font-weight: 600;
+  color: #303133;
+}
+
+.order-date {
+  color: #909399;
+  font-size: 14px;
+}
+
+.order-items {
+  padding: 16px 20px;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px dashed #e0e0e0;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.item-name {
+  color: #303133;
+  font-weight: 500;
+}
+
+.item-quantity {
+  color: #909399;
+  margin: 0 20px;
+}
+
+.item-price {
+  color: #f56c6c;
+  font-weight: bold;
+}
+
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #fafafa;
+  border-top: 1px solid #e0e0e0;
+}
+
+.order-summary {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  color: #606266;
+}
+
+.order-total {
+  color: #303133;
+}
+
+.order-total strong {
+  color: #f56c6c;
+  font-size: 18px;
+}
+
+.order-detail-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-section {
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-section h4 {
+  margin: 0 0 15px 0;
+  color: #303133;
+  font-size: 16px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.detail-label {
+  color: #909399;
+  font-size: 14px;
+}
+
+.detail-value {
+  color: #303133;
+  font-weight: 500;
+}
+
+.detail-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+.detail-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-item-name {
+  color: #303133;
+  font-weight: 500;
+}
+
+.detail-item-spec {
+  color: #909399;
+  font-size: 12px;
+}
+
+.detail-item-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.detail-item-quantity {
+  color: #606266;
+}
+
+.detail-item-subtotal {
+  color: #f56c6c;
+  font-weight: bold;
+}
+
+.detail-footer {
+  padding: 20px;
+  margin-top: auto;
+  background: #f5f5f5;
+}
+
+.detail-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  color: #606266;
+}
+
+.detail-total-row.total-amount {
+  border-top: 1px solid #e0e0e0;
+  margin-top: 10px;
+  padding-top: 15px;
+}
+
+.amount-value {
+  color: #f56c6c;
+  font-size: 22px;
+  font-weight: bold;
 }
 </style>
