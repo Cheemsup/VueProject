@@ -12,7 +12,7 @@
         >
           <el-menu-item index="dashboard">
             <el-icon><HomeFilled /></el-icon>
-            <span>首页</span>
+            <span>购物</span>
           </el-menu-item>
           <el-menu-item index="profile">
             <el-icon><User /></el-icon>
@@ -28,7 +28,7 @@
           </el-menu-item>
         </el-menu>
       </el-aside>
-      
+
       <el-container>
         <el-header class="header">
           <div class="header-left">
@@ -53,204 +53,33 @@
             </el-dropdown>
           </div>
         </el-header>
-        
+
         <el-main class="main-content">
           <div class="content-wrapper">
-            <div v-if="activeMenu === 'dashboard'" class="shopping-content">
-              <div class="category-nav">
-                <el-radio-group v-model="activeCategory" size="default">
-                  <el-radio-button label="all">全部商品</el-radio-button>
-                  <el-radio-button
-                    v-for="cat in categories"
-                    :key="cat.id"
-                    :label="cat.id"
-                  >
-                    <el-icon><component :is="cat.icon" /></el-icon>
-                    {{ cat.name }}
-                  </el-radio-button>
-                </el-radio-group>
-                <div class="nav-right">
-                  <el-input
-                    v-model="searchKeyword"
-                    placeholder="搜索商品..."
-                    clearable
-                    class="search-input"
-                  >
-                    <template #prefix>
-                      <el-icon><Search /></el-icon>
-                    </template>
-                  </el-input>
-                  <el-badge :value="cartCount" :hidden="cartCount === 0" class="cart-badge">
-                    <el-button @click="showCart = true">
-                      <el-icon><ShoppingCart /></el-icon>
-                      购物车
-                    </el-button>
-                  </el-badge>
-                </div>
-              </div>
-
-              <div v-if="activeCategory === 'all' && !searchKeyword && activeFilterCount === 0" class="hot-section">
-                <h3 class="section-title">
-                  <el-icon><Star /></el-icon>
-                  热销推荐
-                </h3>
-                <div class="products-grid">
-                  <div
-                    v-for="product in hotProducts"
-                    :key="product.id"
-                    class="product-card"
-                    @click="addToCart(product)"
-                  >
-                    <div class="product-image">
-                      <img v-if="product.image" :src="product.image" :alt="product.name" @error="handleImageError" />
-                      <div v-else class="image-placeholder">
-                        <el-icon><Goods /></el-icon>
-                      </div>
-                      <div v-if="product.discount < 1" class="discount-tag">
-                        {{ Math.round(product.discount * 10) }}折
-                      </div>
-                    </div>
-                    <div class="product-info">
-                      <h4 class="product-name">{{ product.name }}</h4>
-                      <p class="product-desc">{{ product.description }}</p>
-                      <div class="product-price">
-                        <span class="current-price">¥{{ (product.price * product.discount).toFixed(2) }}</span>
-                        <span v-if="product.discount < 1" class="original-price">¥{{ product.price.toFixed(2) }}</span>
-                      </div>
-                      <div class="product-tags">
-                        <el-tag v-for="tag in product.tags" :key="tag" size="small" type="info">{{ tag }}</el-tag>
-                      </div>
-                    </div>
-                    <div class="product-action">
-                      <el-button type="primary" @click.stop="addToCart(product)">
-                        <el-icon><Plus /></el-icon>
-                        加入购物车
-                      </el-button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="products-section">
-                <h3 class="section-title">
-                  <el-icon><Shop /></el-icon>
-                  {{ currentCategoryName }}
-                </h3>
-                <div v-if="filteredProducts.length > 0" class="products-grid">
-                  <div
-                    v-for="product in filteredProducts"
-                    :key="product.id"
-                    class="product-card"
-                    @click="addToCart(product)"
-                  >
-                    <div class="product-image">
-                      <img v-if="product.image" :src="product.image" :alt="product.name" @error="handleImageError" />
-                      <div v-else class="image-placeholder">
-                        <el-icon><Goods /></el-icon>
-                      </div>
-                      <div v-if="product.discount < 1" class="discount-tag">
-                        {{ Math.round(product.discount * 10) }}折
-                      </div>
-                    </div>
-                    <div class="product-info">
-                      <h4 class="product-name">{{ product.name }}</h4>
-                      <p class="product-desc">{{ product.description }}</p>
-                      <div class="product-price">
-                        <span class="current-price">¥{{ (product.price * product.discount).toFixed(2) }}</span>
-                        <span v-if="product.discount < 1" class="original-price">¥{{ product.price.toFixed(2) }}</span>
-                        <span class="unit">/{{ product.unit }}</span>
-                      </div>
-                      <div class="product-tags">
-                        <el-tag v-for="tag in product.tags" :key="tag" size="small" type="info">{{ tag }}</el-tag>
-                      </div>
-                    </div>
-                    <div class="product-action">
-                      <el-button type="primary" @click.stop="addToCart(product)">
-                        <el-icon><Plus /></el-icon>
-                        加入购物车
-                      </el-button>
-                    </div>
-                  </div>
-                </div>
-                <el-empty v-else description="暂无商品" />
-              </div>
-            </div>
-            
-            <div v-else-if="activeMenu === 'profile'" class="page-content">
-              <h2>个人信息</h2>
-              <el-form label-width="100px" class="profile-form">
-                <el-form-item label="用户名">
-                  <el-input v-model="userInfo.username" disabled />
-                </el-form-item>
-                <el-form-item label="邮箱">
-                  <el-input v-model="userInfo.email" />
-                </el-form-item>
-                <el-form-item label="手机号">
-                  <el-input v-model="userInfo.phone" />
-                </el-form-item>
-                <el-form-item label="地址">
-                  <el-input v-model="userInfo.address" />
-                </el-form-item>
-                <el-form-item>
-                  <el-button type="primary">保存修改</el-button>
-                </el-form-item>
-              </el-form>
-            </div>
-            
-            <div v-else-if="activeMenu === 'orders'" class="page-content">
-              <h2>我的订单</h2>
-              <el-empty v-if="orders.length === 0" description="暂无订单" />
-              <div v-else class="orders-list">
-                <div v-for="order in orders" :key="order.id" class="order-card">
-                  <div class="order-header">
-                    <div class="order-info">
-                      <span class="order-id">订单号：{{ order.id }}</span>
-                      <span class="order-date">{{ order.date }}</span>
-                    </div>
-                    <el-tag :type="getStatusType(order.status)" size="large">
-                      {{ order.status }}
-                    </el-tag>
-                  </div>
-                  <div class="order-items">
-                    <div v-for="item in order.items" :key="item.productId" class="order-item">
-                      <span class="item-name">{{ item.name }}</span>
-                      <span class="item-quantity">x{{ item.quantity }}</span>
-                      <span class="item-price">¥{{ item.subtotal }}</span>
-                    </div>
-                  </div>
-                  <div class="order-footer">
-                    <div class="order-summary">
-                      共 <strong>{{ order.itemCount }}</strong> 件商品
-                      <span class="order-total">合计：<strong>¥{{ order.totalAmount }}</strong></span>
-                    </div>
-                    <el-button type="primary" size="small" @click="viewOrderDetail(order)">
-                      查看详情
-                    </el-button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div v-else-if="activeMenu === 'settings'" class="page-content">
-              <h2>账户设置</h2>
-              <el-form label-width="120px">
-                <el-form-item label="通知设置">
-                  <el-switch v-model="settings.notifications" />
-                </el-form-item>
-                <el-form-item label="消息提醒">
-                  <el-switch v-model="settings.messageAlert" />
-                </el-form-item>
-                <el-form-item label="语言">
-                  <el-select v-model="settings.language">
-                    <el-option label="中文" value="zh" />
-                    <el-option label="English" value="en" />
-                  </el-select>
-                </el-form-item>
-                <el-form-item>
-                  <el-button type="primary">保存设置</el-button>
-                </el-form-item>
-              </el-form>
-            </div>
+            <UserHome
+              v-if="activeMenu === 'dashboard'"
+              :cart-count="cartCount"
+              @open-cart="showCart = true"
+              @add-to-cart="addToCart"
+            />
+            <UserProfile
+              v-else-if="activeMenu === 'profile'"
+              :user-info="userInfo"
+              @update:user-info="userInfo = $event"
+              @go-to-orders="activeMenu = 'orders'"
+            />
+            <UserOrder
+              v-else-if="activeMenu === 'orders'"
+              :orders="orders"
+              @view-detail="viewOrderDetail"
+              @go-shopping="activeMenu = 'dashboard'"
+              @buy-again="handleBuyAgain"
+            />
+            <UserSettings
+              v-else-if="activeMenu === 'settings'"
+              :settings="settings"
+              @update:settings="settings = $event"
+            />
           </div>
         </el-main>
       </el-container>
@@ -267,26 +96,29 @@
           <el-empty description="购物车是空的" />
         </div>
         <div v-else>
-          <div class="cart-items">
-            <div v-for="item in cartItems" :key="item.id" class="cart-item">
-              <div class="cart-item-info">
-                <span class="cart-item-name">{{ item.name }}</span>
-                <span class="cart-item-price">¥{{ (item.price * item.discount).toFixed(2) }}</span>
-              </div>
-              <div class="cart-item-controls">
-                <el-input-number
-                  v-model="item.quantity"
-                  :min="1"
-                  :max="item.stock"
-                  size="small"
-                  @change="updateCartQuantity(item)"
-                />
-                <el-button type="danger" size="small" @click="removeFromCart(item)">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
+            <div class="cart-items">
+              <div v-for="item in cartItems" :key="item.id" class="cart-item">
+                <div class="cart-item-image" v-if="item.image">
+                  <img :src="item.image" :alt="item.name" />
+                </div>
+                <div class="cart-item-info">
+                  <span class="cart-item-name">{{ item.name }}</span>
+                  <span class="cart-item-price">¥{{ (item.price * item.discount).toFixed(2) }}</span>
+                </div>
+                <div class="cart-item-controls">
+                  <el-input-number
+                    v-model="item.quantity"
+                    :min="1"
+                    :max="item.stock"
+                    size="small"
+                    @change="updateCartQuantity(item)"
+                  />
+                  <el-button type="danger" size="small" @click="removeFromCart(item)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
               </div>
             </div>
-          </div>
           <div class="cart-footer">
             <div class="cart-total">
               <span>总计：</span>
@@ -323,7 +155,7 @@
             </el-tag>
           </div>
         </div>
-        
+
         <div class="detail-section">
           <h4>商品清单</h4>
           <div class="detail-items">
@@ -339,7 +171,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="detail-footer">
           <div class="detail-total-row">
             <span>商品数量</span>
@@ -359,29 +191,21 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { 
-  HomeFilled, 
-  User, 
-  Document, 
-  Setting, 
-  Fold, 
-  Avatar, 
+import {
+  HomeFilled,
+  User,
+  Document,
+  Setting,
+  Fold,
+  Avatar,
   ArrowDown,
-  Shop,
-  ShoppingCart,
-  Search,
-  Star,
-  Goods,
-  Plus,
-  Delete,
-  Coffee,
-  Milk,
-  Food,
-  Apple,
-  Biscuit
+  Delete
 } from '@element-plus/icons-vue'
-import { categories, products, hotProducts, getProductsByCategory } from '@/data/products.js'
 import { getOrders, createOrder } from '@/data/orders.js'
+import UserHome from './user/UserHome.vue'
+import UserProfile from './user/UserProfile.vue'
+import UserOrder from './user/UserOrder.vue'
+import UserSettings from './user/UserSettings.vue'
 
 export default {
   name: 'DashboardUser',
@@ -393,124 +217,64 @@ export default {
     Fold,
     Avatar,
     ArrowDown,
-    Shop,
-    ShoppingCart,
-    Search,
-    Star,
-    Goods,
-    Plus,
     Delete,
-    Coffee,
-    Milk,
-    Food,
-    Apple,
-    Biscuit
+    UserHome,
+    UserProfile,
+    UserOrder,
+    UserSettings
   },
   setup() {
     const router = useRouter()
     const activeMenu = ref('dashboard')
     const currentUser = ref('')
     const isCollapsed = ref(false)
-    
-    const activeCategory = ref('all')
-    const searchKeyword = ref('')
     const showCart = ref(false)
-    const priceRange = ref([0, 50])
-    const selectedTags = ref([])
-    const pendingPriceRange = ref([0, 50])
-    const pendingSelectedTags = ref([])
     const cartItems = ref([])
-    
+    const showOrderDetail = ref(false)
+    const currentOrderDetail = ref(null)
+
     const userInfo = ref({
       username: '',
       email: 'user@example.com',
       phone: '13800138000',
       address: '北京市朝阳区'
     })
-    
+
     const orders = ref([])
-    const showOrderDetail = ref(false)
-    const currentOrderDetail = ref(null)
-    
+
     const settings = ref({
       notifications: true,
       messageAlert: true,
       language: 'zh'
     })
-    
-    const allTags = computed(() => {
-      const tags = new Set()
-      products.forEach(p => p.tags.forEach(tag => tags.add(tag)))
-      return Array.from(tags).sort()
-    })
-    
-    const activeFilterCount = computed(() => {
-      let count = 0
-      if (priceRange.value[0] > 0 || priceRange.value[1] < 50) count++
-      if (selectedTags.value.length > 0) count += selectedTags.value.length
-      return count
-    })
-    
-    const currentCategoryName = computed(() => {
-      if (searchKeyword.value) return '搜索结果'
-      if (activeCategory.value === 'all') return '全部商品'
-      const cat = categories.find(c => c.id === activeCategory.value)
-      return cat ? cat.name : '商品'
-    })
-    
-    const filteredProducts = computed(() => {
-      let result = getProductsByCategory(activeCategory.value)
-      
-      if (searchKeyword.value) {
-        const keyword = searchKeyword.value.toLowerCase()
-        result = result.filter(p =>
-          p.name.toLowerCase().includes(keyword) ||
-          p.description.toLowerCase().includes(keyword) ||
-          p.tags.some(tag => tag.toLowerCase().includes(keyword))
-        )
-      }
-      
-      result = result.filter(p => {
-        const finalPrice = p.price * p.discount
-        return finalPrice >= priceRange.value[0] && finalPrice <= priceRange.value[1]
-      })
-      
-      if (selectedTags.value.length > 0) {
-        result = result.filter(p =>
-          selectedTags.value.some(tag => p.tags.includes(tag))
-        )
-      }
-      
-      return result
-    })
-    
+
     const cartCount = computed(() => {
       return cartItems.value.reduce((sum, item) => sum + item.quantity, 0)
     })
-    
+
     const cartTotal = computed(() => {
       return cartItems.value.reduce((sum, item) => {
         return sum + item.price * item.discount * item.quantity
       }, 0)
     })
-    
+
     onMounted(() => {
       const username = localStorage.getItem('username')
       currentUser.value = username || '用户'
       userInfo.value.username = username || '用户'
-      
+
       const savedCart = localStorage.getItem('cartItems')
       if (savedCart) {
         cartItems.value = JSON.parse(savedCart)
       }
-      
+
       orders.value = getOrders()
     })
-    
+
     const handleMenuSelect = (index) => {
       activeMenu.value = index
     }
-    
+
     const handleCommand = (command) => {
       if (command === 'logout') {
         localStorage.removeItem('username')
@@ -523,11 +287,11 @@ export default {
         activeMenu.value = 'settings'
       }
     }
-    
+
     const toggleSidebar = () => {
       isCollapsed.value = !isCollapsed.value
     }
-    
+
     const getStatusType = (status) => {
       const statusMap = {
         '待发货': 'warning',
@@ -537,15 +301,10 @@ export default {
       }
       return statusMap[status] || 'info'
     }
-    
-    const handleImageError = (e) => {
-      e.target.style.display = 'none'
-      e.target.nextElementSibling && (e.target.nextElementSibling.style.display = 'flex')
-    }
-    
+
     const addToCart = (product) => {
       const existingItem = cartItems.value.find(item => item.id === product.id)
-      
+
       if (existingItem) {
         if (existingItem.quantity < existingItem.stock) {
           existingItem.quantity++
@@ -555,19 +314,25 @@ export default {
         }
       } else {
         cartItems.value.push({
-          ...product,
-          quantity: 1
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          discount: product.discount,
+          unit: product.unit,
+          quantity: 1,
+          stock: product.stock,
+          image: product.image
         })
         ElMessage.success(`已加入购物车：${product.name}`)
       }
-      
+
       saveCart()
     }
-    
-    const updateCartQuantity = (item) => {
+
+    const updateCartQuantity = () => {
       saveCart()
     }
-    
+
     const removeFromCart = (item) => {
       const index = cartItems.value.findIndex(i => i.id === item.id)
       if (index > -1) {
@@ -576,71 +341,81 @@ export default {
         saveCart()
       }
     }
-    
+
     const saveCart = () => {
       localStorage.setItem('cartItems', JSON.stringify(cartItems.value))
     }
-    
+
     const handleCheckout = () => {
       if (cartItems.value.length === 0) {
         ElMessage.warning('购物车是空的')
         return
       }
-      
+
       const newOrder = createOrder(cartItems.value, cartTotal.value)
-      
+
       orders.value = getOrders()
-      
+
       cartItems.value = []
       localStorage.removeItem('cartItems')
-      
+
       showCart.value = false
-      
+
       ElMessage.success(`订单 ${newOrder.id} 下单成功！`)
-      
+
       activeMenu.value = 'orders'
     }
-    
+
     const viewOrderDetail = (order) => {
       currentOrderDetail.value = order
       showOrderDetail.value = true
     }
-    
+
+    const handleBuyAgain = (order) => {
+      order.items.forEach(item => {
+        const existingItem = cartItems.value.find(i => i.id === item.productId)
+        if (existingItem) {
+          existingItem.quantity += item.quantity
+        } else {
+          cartItems.value.push({
+            id: item.productId,
+            name: item.name,
+            price: item.price,
+            discount: item.discount,
+            unit: item.unit,
+            quantity: item.quantity,
+            stock: item.stock || 999,
+            image: item.image
+          })
+        }
+      })
+      saveCart()
+      activeMenu.value = 'dashboard'
+      ElMessage.success('已将商品加入购物车')
+    }
+
     return {
-      categories,
-      products,
-      hotProducts,
-      activeCategory,
+      activeMenu,
       currentUser,
-      searchKeyword,
       showCart,
       cartItems,
       cartCount,
       cartTotal,
-      currentCategoryName,
-      filteredProducts,
-      allTags,
-      priceRange,
-      selectedTags,
-      pendingPriceRange,
-      pendingSelectedTags,
-      activeFilterCount,
-      handleImageError,
-      addToCart,
-      updateCartQuantity,
-      removeFromCart,
-      handleCheckout,
-      activeMenu,
       userInfo,
       orders,
       settings,
+      showOrderDetail,
+      currentOrderDetail,
       handleMenuSelect,
       handleCommand,
       toggleSidebar,
       getStatusType,
-      showOrderDetail,
-      currentOrderDetail,
-      viewOrderDetail
+      addToCart,
+      updateCartQuantity,
+      removeFromCart,
+      handleCheckout,
+      viewOrderDetail,
+      handleBuyAgain
     }
   }
 }
@@ -720,355 +495,11 @@ export default {
 
 .content-wrapper {
   background-color: #fff;
-  padding: 20px;
-  border-radius: 4px;
-  min-height: calc(100vh - 140px);
-}
-
-.dashboard-content h1 {
-  margin: 0 0 30px 0;
-  color: #303133;
-}
-
-.welcome-card {
-  display: flex;
-  align-items: center;
-  padding: 30px;
-  background: linear-gradient(135deg, #42b983 0%, #35a070 100%);
-  border-radius: 8px;
-  color: white;
-  margin-bottom: 30px;
-}
-
-.welcome-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 20px;
-  font-size: 40px;
-}
-
-.welcome-text h3 {
-  margin: 0 0 10px 0;
-  font-size: 24px;
-}
-
-.welcome-text p {
-  margin: 0;
-  opacity: 0.9;
-}
-
-.quick-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.action-card {
-  padding: 30px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid #e0e0e0;
-}
-
-.action-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 20px rgba(66, 185, 131, 0.3);
-  border-color: #42b983;
-}
-
-.action-card .el-icon {
-  font-size: 40px;
-  color: #42b983;
-}
-
-.action-card span {
-  font-size: 16px;
-  font-weight: 500;
-  color: #303133;
-}
-
-.page-content h2 {
-  margin: 0 0 20px 0;
-  color: #303133;
-}
-
-.profile-form {
-  max-width: 500px;
-}
-
-.shopping-content {
-  width: 100%;
-}
-
-.category-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  padding: 18px 24px;
-  background: linear-gradient(135deg, #f5faf7 0%, #e8f5ed 100%);
-  border-radius: 12px;
-  border: 1px solid #d4edda;
-  box-shadow: 0 2px 12px rgba(66, 185, 131, 0.1);
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.category-nav :deep(.el-radio-group) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.category-nav :deep(.el-radio-button__inner) {
-  border: none;
-  background-color: #fff;
-  color: #606266;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.category-nav :deep(.el-radio-button__inner:hover) {
-  color: #42b983;
-  background-color: #f0f9f4;
-}
-
-.category-nav :deep(.el-radio-button:first-child .el-radio-button__inner) {
-  border-radius: 8px;
-}
-
-.category-nav :deep(.el-radio-button:last-child .el-radio-button__inner) {
-  border-radius: 8px;
-}
-
-.category-nav :deep(.el-radio-button__orig-radio:checked + .el-radio-button__inner) {
-  background: linear-gradient(135deg, #42b983 0%, #35a070 100%);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.4);
-}
-
-.category-nav :deep(.el-radio-button__orig-radio:checked + .el-radio-button__inner:hover) {
-  background: linear-gradient(135deg, #35a070 0%, #2d8f62 100%);
-}
-
-.category-nav :deep(.el-icon) {
-  margin-right: 6px;
-  font-size: 16px;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.search-input {
-  width: 280px;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-}
-
-.search-input :deep(.el-input__wrapper:hover),
-.search-input :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.2);
-}
-
-.cart-badge {
-  display: flex;
-  align-items: center;
-}
-
-.cart-badge :deep(.el-button) {
-  background: linear-gradient(135deg, #42b983 0%, #35a070 100%);
-  border: none;
-  border-radius: 8px;
-  padding: 10px 24px;
-  font-weight: 500;
-  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.3);
-  transition: all 0.3s ease;
-}
-
-.cart-badge :deep(.el-button:hover) {
-  background: linear-gradient(135deg, #35a070 0%, #2d8f62 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.4);
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 20px 0;
-  color: #303133;
-  font-size: 18px;
-}
-
-.section-title .el-icon {
-  color: #42b983;
-}
-
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-}
-
-.product-card {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-}
-
-.product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 20px rgba(66, 185, 131, 0.2);
-  border-color: #42b983;
-}
-
-.product-image {
-  width: 100%;
-  height: 160px;
-  background-color: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.product-image img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.image-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #f0f2f5 0%, #e0e0e0 100%);
-}
-
-.image-placeholder .el-icon {
-  font-size: 60px;
-  color: #b0b0b0;
-}
-
-.discount-tag {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: #f56c6c;
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.product-info {
-  padding: 15px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.product-name {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.product-desc {
-  margin: 0 0 10px 0;
-  font-size: 12px;
-  color: #909399;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.product-price {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.current-price {
-  font-size: 20px;
-  font-weight: bold;
-  color: #f56c6c;
-}
-
-.original-price {
-  font-size: 12px;
-  color: #c0c4cc;
-  text-decoration: line-through;
-}
-
-.unit {
-  font-size: 12px;
-  color: #909399;
-}
-
-.product-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 10px;
-}
-
-.product-action {
-  padding: 0 15px 15px;
-}
-
-.product-action .el-button {
-  width: 100%;
-  background-color: #42b983;
-  border-color: #42b983;
-}
-
-.product-action .el-button:hover {
-  background-color: #35a070;
-  border-color: #35a070;
-}
-
-.hot-section {
-  margin-bottom: 40px;
-}
-
-.products-section {
-  margin-bottom: 20px;
+  padding: 24px;
+  border-radius: 16px;
+  min-height: calc(100vh - 148px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  animation: fadeIn 0.5s ease-out;
 }
 
 .cart-content {
@@ -1092,49 +523,64 @@ export default {
 .cart-item {
   padding: 15px;
   border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.cart-item-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f5f7fa;
+}
+
+.cart-item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .cart-item-info {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   margin-bottom: 10px;
 }
 
 .cart-item-name {
-  font-size: 14px;
   color: #303133;
+  font-weight: 500;
 }
 
 .cart-item-price {
-  font-size: 14px;
   color: #f56c6c;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .cart-item-controls {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
 }
 
 .cart-footer {
   padding: 20px;
   border-top: 1px solid #e0e0e0;
-  background-color: #f5f5f5;
+  background-color: #f5f7fa;
 }
 
 .cart-total {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   margin-bottom: 15px;
   font-size: 16px;
+  font-weight: 500;
 }
 
 .total-price {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 20px;
   color: #f56c6c;
 }
 
@@ -1149,115 +595,12 @@ export default {
   border-color: #35a070;
 }
 
-.orders-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.order-card {
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #fff;
-  transition: all 0.3s ease;
-}
-
-.order-card:hover {
-  box-shadow: 0 4px 16px rgba(66, 185, 131, 0.15);
-  border-color: #42b983;
-}
-
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #f5faf7 0%, #e8f5ed 100%);
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.order-info {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-}
-
-.order-id {
-  font-weight: 600;
-  color: #303133;
-}
-
-.order-date {
-  color: #909399;
-  font-size: 14px;
-}
-
-.order-items {
-  padding: 16px 20px;
-}
-
-.order-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px dashed #e0e0e0;
-}
-
-.order-item:last-child {
-  border-bottom: none;
-}
-
-.item-name {
-  color: #303133;
-  font-weight: 500;
-}
-
-.item-quantity {
-  color: #909399;
-  margin: 0 20px;
-}
-
-.item-price {
-  color: #f56c6c;
-  font-weight: bold;
-}
-
-.order-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: #fafafa;
-  border-top: 1px solid #e0e0e0;
-}
-
-.order-summary {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  color: #606266;
-}
-
-.order-total {
-  color: #303133;
-}
-
-.order-total strong {
-  color: #f56c6c;
-  font-size: 18px;
-}
-
 .order-detail-content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  padding: 0 20px;
 }
 
 .detail-section {
-  padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 25px;
 }
 
 .detail-section h4 {
@@ -1269,13 +612,12 @@ export default {
 .detail-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   padding: 10px 0;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .detail-label {
   color: #909399;
-  font-size: 14px;
 }
 
 .detail-value {
@@ -1284,28 +626,29 @@ export default {
 }
 
 .detail-items {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  padding: 10px;
 }
 
 .detail-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background: #f5f7fa;
-  border-radius: 8px;
+  padding: 10px 0;
+  border-bottom: 1px dashed #e0e0e0;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
 }
 
 .detail-item-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
 .detail-item-name {
-  color: #303133;
+  color: #606266;
   font-weight: 500;
 }
 
@@ -1316,41 +659,41 @@ export default {
 
 .detail-item-right {
   display: flex;
-  align-items: center;
-  gap: 15px;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .detail-item-quantity {
-  color: #606266;
+  color: #909399;
+  font-size: 14px;
 }
 
 .detail-item-subtotal {
   color: #f56c6c;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .detail-footer {
-  padding: 20px;
-  margin-top: auto;
-  background: #f5f5f5;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
 }
 
 .detail-total-row {
   display: flex;
   justify-content: space-between;
-  padding: 10px 0;
+  padding: 8px 0;
   color: #606266;
 }
 
-.detail-total-row.total-amount {
-  border-top: 1px solid #e0e0e0;
+.total-amount {
+  font-size: 18px;
+  font-weight: 500;
   margin-top: 10px;
-  padding-top: 15px;
 }
 
 .amount-value {
   color: #f56c6c;
-  font-size: 22px;
-  font-weight: bold;
+  font-size: 20px;
 }
 </style>
