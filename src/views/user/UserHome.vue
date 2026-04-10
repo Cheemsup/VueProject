@@ -83,10 +83,16 @@
             </div>
           </div>
           <div class="product-action">
-            <el-button type="primary" @click.stop="addToCart(product)">
-              <el-icon><Plus /></el-icon>
-              加入购物车
-            </el-button>
+            <div class="action-buttons">
+              <el-button type="info" size="small" @click.stop="askAI(product, $event)">
+                <el-icon><ChatDotRound /></el-icon>
+                问AI
+              </el-button>
+              <el-button type="primary" size="small" @click.stop="addToCart(product)">
+                <el-icon><Plus /></el-icon>
+                加入购物车
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -126,10 +132,16 @@
             </div>
           </div>
           <div class="product-action">
-            <el-button type="primary" @click.stop="addToCart(product)">
-              <el-icon><Plus /></el-icon>
-              加入购物车
-            </el-button>
+            <div class="action-buttons">
+              <el-button type="info" size="small" @click.stop="askAI(product, $event)">
+                <el-icon><ChatDotRound /></el-icon>
+                问AI
+              </el-button>
+              <el-button type="primary" size="small" @click.stop="addToCart(product)">
+                <el-icon><Plus /></el-icon>
+                加入购物车
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -147,7 +159,8 @@ import {
   Search,
   Star,
   Goods,
-  Plus
+  Plus,
+  ChatDotRound
 } from '@element-plus/icons-vue'
 import { categories, products, hotProducts, getProductsByCategory } from '@/data/products.js'
 
@@ -159,7 +172,8 @@ export default {
     Search,
     Star,
     Goods,
-    Plus
+    Plus,
+    ChatDotRound
   },
   props: {
     cartCount: {
@@ -167,7 +181,7 @@ export default {
       default: 0
     }
   },
-  emits: ['openCart', 'addToCart'],
+  emits: ['openCart', 'addToCart', 'askAI'],
   setup(props, { emit }) {
     const activeCategory = ref('all')
     const searchKeyword = ref('')
@@ -256,6 +270,11 @@ export default {
       emit('addToCart', product)
     }
 
+    const askAI = (product, event) => {
+      event.stopPropagation()
+      emit('askAI', product)
+    }
+
     return {
       categories,
       products,
@@ -270,7 +289,8 @@ export default {
       currentCategoryName,
       filteredProducts,
       handleImageError,
-      addToCart
+      addToCart,
+      askAI
     }
   }
 }
@@ -610,13 +630,21 @@ export default {
   padding: 0 15px 15px;
 }
 
-.product-action .el-button {
-  width: 100%;
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-buttons .el-button {
+  flex: 1;
+}
+
+.action-buttons .el-button[type="primary"] {
   background-color: #42b983;
   border-color: #42b983;
 }
 
-.product-action .el-button:hover {
+.action-buttons .el-button[type="primary"]:hover {
   background-color: #35a070;
   border-color: #35a070;
 }
