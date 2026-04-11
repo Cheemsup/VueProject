@@ -6,7 +6,7 @@
         <label>搜索：</label>
         <el-input
           v-model="orderSearch"
-          placeholder="请输入订单号或客户名"
+          placeholder="请输入订单号"
           clearable
           @clear="handleOrderSearchClear"
         >
@@ -93,8 +93,14 @@
       v-model="detailDialogVisible"
       title="订单详情"
       width="600px"
+      :before-close="handleDialogClose"
     >
-      <el-descriptions :column="2" border v-if="currentOrder">
+      <div v-if="detailLoading" class="loading-container">
+        <el-progress :percentage="parseFloat(loadingPercentage.toFixed(2))" :stroke-width="8" />
+        <p class="loading-text">正在加载订单详情...</p>
+      </div>
+      <div v-else-if="currentOrder">
+        <el-descriptions :column="2" border>
         <el-descriptions-item label="订单号">{{ currentOrder.id }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(currentOrder.status)">
@@ -134,9 +140,10 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <template #footer>
-        <el-button @click="detailDialogVisible = false">关闭</el-button>
+        <el-button @click="handleDialogClose">关闭</el-button>
       </template>
     </el-dialog>
   </div>
@@ -163,6 +170,34 @@ export default {
     const filteredOrders = ref([...props.orders])
     const detailDialogVisible = ref(false)
     const currentOrder = ref(null)
+    const detailLoading = ref(false)
+    const loadingPercentage = ref(0)
+    let loadingTimer = null
+
+    const startLoading = () => {
+      detailLoading.value = true
+      loadingPercentage.value = 0
+      loadingTimer = setInterval(() => {
+        if (loadingPercentage.value < 90) {
+          loadingPercentage.value += Math.random() * 15
+        }
+      }, 100)
+    }
+
+    const stopLoading = () => {
+      if (loadingTimer) {
+        clearInterval(loadingTimer)
+        loadingTimer = null
+      }
+      loadingPercentage.value = 100
+      setTimeout(() => {
+        detailLoading.value = false
+      }, 200)
+    }
+
+    const handleDialogClose = () => {
+      detailDialogVisible.value = false
+    }
 
     const filterOrders = () => {
       filteredOrders.value = props.orders.filter(order => {
@@ -226,6 +261,10 @@ export default {
     const showOrderDetail = (order) => {
       currentOrder.value = order
       detailDialogVisible.value = true
+      startLoading()
+      setTimeout(() => {
+        stopLoading()
+      }, 500)
     }
 
     watch(() => props.orders, () => {
@@ -248,7 +287,10 @@ export default {
       handleShip,
       detailDialogVisible,
       currentOrder,
-      showOrderDetail
+      showOrderDetail,
+      detailLoading,
+      loadingPercentage,
+      handleDialogClose
     }
   }
 }
@@ -283,5 +325,19 @@ export default {
   font-weight: 500;
   white-space: nowrap;
   min-width: 60px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+.loading-text {
+  margin-top: 20px;
+  color: #909399;
+  font-size: 14px;
 }
 </style>

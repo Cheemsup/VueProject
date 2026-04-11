@@ -312,7 +312,7 @@ export default {
   align-items: center;
   margin-bottom: 24px;
   padding: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #7d53a7 100%);
   border-radius: 12px;
   color: #fff;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
@@ -363,8 +363,8 @@ export default {
 }
 
 .stat-card {
-  background: #fff;
-  border-radius: 12px;
+  background: #ffffff;
+  border-radius: 15px;
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
@@ -390,7 +390,7 @@ export default {
 
 .stat-card-content {
   display: flex;
-  align-items: center;
+  align-items: left;
   margin-bottom: 16px;
 }
 
@@ -420,12 +420,14 @@ export default {
   font-weight: 700;
   color: #303133;
   line-height: 1.2;
+  text-align: left;
 }
 
 .stat-label {
   font-size: 14px;
   color: #909399;
   margin-top: 4px;
+  text-align: left;
 }
 
 .stat-footer {
