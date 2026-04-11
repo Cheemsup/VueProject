@@ -7,9 +7,8 @@
           <label>搜索：</label>
           <el-input
             v-model="productSearch"
-            placeholder="请输入产品名称或ID"
+            placeholder="请输入产品名称或 ID"
             clearable
-            @clear="handleSearchClear"
           >
             <template #prefix>
               <el-icon><Search /></el-icon>
@@ -22,7 +21,6 @@
             v-model="productCategory"
             placeholder="请选择分类"
             clearable
-            @change="handleCategoryChange"
           >
             <el-option label="全部" value="" />
             <el-option
@@ -32,6 +30,35 @@
               :value="cat.id"
             />
           </el-select>
+        </div>
+        <div class="filter-item">
+          <label>状态：</label>
+          <el-button-group class="status-button-group">
+            <el-button 
+              :type="productStatus === '' ? 'primary' : 'default'"
+              @click="productStatus = ''"
+              :plain="productStatus !== ''"
+            >
+              <el-icon><CircleCheckFilled /></el-icon>
+              <span>全部</span>
+            </el-button>
+            <el-button 
+              :type="productStatus === 'onshelf' ? 'success' : 'default'"
+              @click="productStatus = 'onshelf'"
+              :plain="productStatus !== 'onshelf'"
+            >
+              <el-icon><UploadFilled /></el-icon>
+              <span>上架中</span>
+            </el-button>
+            <el-button 
+              :type="productStatus === 'offshelf' ? 'danger' : 'default'"
+              @click="productStatus = 'offshelf'"
+              :plain="productStatus !== 'offshelf'"
+            >
+              <el-icon><DeleteFilled /></el-icon>
+              <span>已下架</span>
+            </el-button>
+          </el-button-group>
         </div>
       </div>
       <div class="filter-right">
@@ -50,23 +77,28 @@
         <div 
           class="category-item" 
           :class="{ active: productCategory === '' }"
-          @click="productCategory = ''; handleCategoryChange()"
+          @click="productCategory = ''"
         >
-          全部
+          <span class="category-text">全部</span>
         </div>
         <div 
           v-for="cat in categories" 
           :key="cat.id"
           class="category-item"
           :class="{ active: productCategory === cat.id }"
-          @click="productCategory = cat.id; handleCategoryChange()"
+          @click="productCategory = cat.id"
         >
-          {{ cat.name }}
+          <span class="category-text">{{ cat.name }}</span>
         </div>
       </div>
     </div>
     <div class="product-grid" :class="{ 'small-mode': viewMode === 'small' }">
-      <div v-for="product in filteredProducts" :key="product.id" class="product-card">
+      <div 
+        v-for="product in filteredProducts" 
+        :key="product.id" 
+        class="product-card"
+        :class="{ 'offshelf': product.status === 'offshelf' }"
+      >
         <div class="product-image">
           <img v-if="product.image" :src="product.image" :alt="product.name" />
           <el-icon v-else><Goods /></el-icon>
@@ -88,6 +120,22 @@
         </div>
         <div class="product-actions">
           <el-button size="small" type="primary" @click="showProductDetail(product)">详情</el-button>
+          <el-button 
+            v-if="product.status !== 'offshelf'"
+            size="small" 
+            type="success" 
+            @click="toggleProductStatus(product, 'offshelf')"
+          >
+            下架
+          </el-button>
+          <el-button 
+            v-else
+            size="small" 
+            type="warning" 
+            @click="toggleProductStatus(product, 'onshelf')"
+          >
+            上架
+          </el-button>
         </div>
       </div>
     </div>
@@ -161,19 +209,22 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue'
-import { Goods, Search, Grid, List } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { Goods, Search, Grid, List, CircleCheckFilled, UploadFilled, DeleteFilled } from '@element-plus/icons-vue'
 import { products as productsData, categories as categoriesData } from '../../data/products'
 
 export default {
   name: 'DashboardProduct',
-  components: { Goods, Search, Grid, List },
+  components: { 
+    Goods, Search, Grid, List, 
+    CircleCheckFilled, UploadFilled, DeleteFilled 
+  },
   setup() {
     const products = productsData
     const categories = categoriesData
     const productSearch = ref('')
     const productCategory = ref('')
-    const filteredProducts = ref([...products])
+    const productStatus = ref('') // 产品状态筛选
     const selectedProduct = ref(null)
     const detailDialogVisible = ref(false)
     const viewMode = ref('large')
@@ -183,24 +234,27 @@ export default {
       return category ? category.name : categoryId
     }
 
-    const filterProducts = () => {
-      filteredProducts.value = products.filter(product => {
+    // 使用 computed 自动响应筛选条件变化，避免 watch 的循环触发问题
+    const filteredProducts = computed(() => {
+      return products.filter(product => {
+        // 搜索筛选
         const matchSearch = productSearch.value === '' ||
           product.name.toLowerCase().includes(productSearch.value.toLowerCase()) ||
           product.id.toString().includes(productSearch.value)
+        // 分类筛选
         const matchCategory = productCategory.value === '' ||
           product.category === productCategory.value
-        return matchSearch && matchCategory
+        // 状态筛选
+        const matchStatus = productStatus.value === '' ||
+          product.status === productStatus.value
+        return matchSearch && matchCategory && matchStatus
       })
-    }
+    })
 
-    const handleSearchClear = () => {
-      productSearch.value = ''
-      filterProducts()
-    }
-
-    const handleCategoryChange = () => {
-      filterProducts()
+    // 切换产品上下架状态
+    const toggleProductStatus = (product, newStatus) => {
+      product.status = newStatus
+      // computed 会自动重新计算，无需手动触发
     }
 
     const showProductDetail = (product) => {
@@ -208,20 +262,18 @@ export default {
       detailDialogVisible.value = true
     }
 
-    watch(productSearch, () => { filterProducts() }, { immediate: true })
-
     return {
       products,
       categories,
       productSearch,
       productCategory,
+      productStatus,
       filteredProducts,
       selectedProduct,
       detailDialogVisible,
       viewMode,
       getCategoryName,
-      handleSearchClear,
-      handleCategoryChange,
+      toggleProductStatus,
       showProductDetail
     }
   }
@@ -249,6 +301,21 @@ export default {
   display: flex;
   gap: 20px;
   flex: 1;
+  align-items: center;
+}
+
+/* 状态按钮组样式 */
+.status-button-group {
+  display: inline-flex;
+}
+
+.status-button-group .el-button {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.status-button-group .el-button .el-icon {
+  margin-right: 4px;
 }
 
 .filter-right {
@@ -256,52 +323,106 @@ export default {
 }
 
 .category-bar {
-  margin-bottom: 16px;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f2f5;
+  margin-bottom: 20px;
+  padding: 0;
+  background: #fff;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .category-scroll {
   display: flex;
-  gap: 8px;
+  gap: 0;
   overflow-x: auto;
-  padding: 4px 0;
+  padding: 0;
   scrollbar-width: thin;
+  position: relative;
 }
 
 .category-scroll::-webkit-scrollbar {
-  height: 4px;
+  height: 3px;
 }
 
 .category-scroll::-webkit-scrollbar-thumb {
-  background: #dcdfe6;
+  background: #e4e7ed;
   border-radius: 2px;
 }
 
 .category-item {
   flex-shrink: 0;
-  padding: 8px 20px;
-  background: #fff;
-  border: 1px solid #dcdfe6;
-  border-radius: 20px;
+  position: relative;
+  padding: 14px 24px;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 8px 8px 0 0;
   font-size: 14px;
   color: #606266;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   white-space: nowrap;
+  margin-right: 2px;
+  overflow: hidden;
+}
+
+.category-item::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.category-item::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%);
+  opacity: 0;
+  transition: all 0.3s ease;
 }
 
 .category-item:hover {
-  border-color: #409eff;
-  color: #409eff;
   background: #ecf5ff;
+  color: #409eff;
+  transform: translateY(-2px);
+}
+
+.category-item:hover::before {
+  background: #409eff;
+}
+
+.category-item:hover::after {
+  opacity: 1;
 }
 
 .category-item.active {
-  background: #409eff;
-  border-color: #409eff;
+  background: linear-gradient(180deg, #409eff 0%, #66b1ff 100%);
   color: #fff;
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.category-item.active::before {
+  background: #409eff;
+  height: 4px;
+}
+
+.category-item.active::after {
+  opacity: 1;
+}
+
+.category-text {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  padding: 0 4px;
 }
 
 .filter-item {
@@ -321,8 +442,8 @@ export default {
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
   padding: 10px 0;
 }
 
@@ -381,6 +502,26 @@ export default {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* 已下架产品样式 */
+.product-card.offshelf {
+  opacity: 0.6;
+}
+
+.product-card.offshelf::after {
+  content: '已下架';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(245, 108, 108, 0.9);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 10;
 }
 
 .product-card:hover {
@@ -443,12 +584,26 @@ export default {
 
 .product-actions {
   display: flex;
-  gap: 8px;
+  gap: 0;
   margin-top: 8px;
 }
 
 .product-actions .el-button {
   flex: 1;
+  margin: 0;
+  border-radius: 0;
+}
+
+.product-actions .el-button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.product-actions .el-button:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.product-actions .el-button:not(:first-child):not(:last-child) {
+  border-radius: 0;
 }
 
 .product-detail {

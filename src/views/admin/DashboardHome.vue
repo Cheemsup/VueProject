@@ -156,6 +156,8 @@
             :key="msg.id" 
             class="message-item"
             :class="msg.type"
+            @click="$emit('navigate', 'messages')"
+            style="cursor: pointer;"
           >
             <div class="message-icon" :class="msg.type">
               <el-icon v-if="msg.type === 'urge'"><Warning /></el-icon>
