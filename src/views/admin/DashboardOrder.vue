@@ -1,6 +1,8 @@
 <template>
   <div class="page-content">
-    <h2>订单管理</h2>
+    <div class="page-header">
+      <h2>订单管理</h2>
+    </div>
     <div class="filter-bar">
       <div class="filter-item">
         <label>搜索：</label>
@@ -92,39 +94,53 @@
     </div>
 
     <div class="main-content">
-      <el-table :data="filteredOrders" style="width: 100%">
-        <el-table-column prop="id" label="订单号" width="0" />
-        <el-table-column prop="customer" label="客户" width="120" />
-        <el-table-column prop="status" label="状态" width="120">
-          <template #default="scope">
-            <el-tag :type="getStatusType(scope.row.status)">
-              {{ scope.row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="催单" width="120">
-          <template #default="scope">
-            <el-tag v-if="scope.row.urgentCount > 0" type="danger">
-              已催单 ({{ scope.row.urgentCount }})
-            </el-tag>
-            <span v-else style="color: #909399;">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="date" label="日期" width="120" />
-        <el-table-column label="操作" width="160">
-          <template #default="scope">
-            <el-button size="small" @click="showOrderDetail(scope.row)">查看</el-button>
-            <el-button
-              v-if="scope.row.status === '待发货'"
-              size="small"
-              type="primary"
-              @click="handleShip(scope.row)"
-            >
-              发货
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-wrapper">
+        <el-table :data="paginatedOrders" style="width: 100%" class="rounded-table">
+          <el-table-column prop="id" label="订单号" width="150" />
+          <el-table-column prop="customer" label="客户" width="120" />
+          <el-table-column prop="status" label="状态" width="120">
+            <template #default="scope">
+              <el-tag :type="getStatusType(scope.row.status)">
+                {{ scope.row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="催单" width="120">
+            <template #default="scope">
+              <el-tag v-if="scope.row.urgentCount > 0" type="danger">
+                已催单 ({{ scope.row.urgentCount }})
+              </el-tag>
+              <span v-else style="color: #909399;">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="date" label="日期" width="120" />
+          <el-table-column label="操作" width="160">
+            <template #default="scope">
+              <el-button size="small" @click="showOrderDetail(scope.row)">查看</el-button>
+              <el-button
+                v-if="scope.row.status === '待发货'"
+                size="small"
+                type="primary"
+                @click="handleShip(scope.row)"
+              >
+                发货
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[5, 10, 20, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="filteredOrders.length"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </div>
 
       <div class="date-drawer">
         <h3 class="date-drawer-title">日期筛选</h3>
@@ -249,6 +265,28 @@ export default {
     const loadingPercentage = ref(false)
     let loadingTimer = null
 
+    // 分页相关
+    const currentPage = ref(1)
+    const pageSize = ref(5)
+    const paginatedOrders = ref([])
+
+    const updatePaginatedOrders = () => {
+      const start = (currentPage.value - 1) * pageSize.value
+      const end = start + pageSize.value
+      paginatedOrders.value = filteredOrders.value.slice(start, end)
+    }
+
+    const handleSizeChange = (val) => {
+      pageSize.value = val
+      currentPage.value = 1
+      updatePaginatedOrders()
+    }
+
+    const handleCurrentChange = (val) => {
+      currentPage.value = val
+      updatePaginatedOrders()
+    }
+
     const startLoading = () => {
       detailLoading.value = true
       loadingPercentage.value = 0
@@ -332,6 +370,8 @@ export default {
       }
 
       filteredOrders.value = result
+      currentPage.value = 1
+      updatePaginatedOrders()
     }
 
     const formatDate = (date) => {
@@ -400,6 +440,9 @@ export default {
       dateFilter,
       sortOption,
       filteredOrders,
+      paginatedOrders,
+      currentPage,
+      pageSize,
       getStatusType,
       handleOrderSearchClear,
       handleOrderStatusChange,
@@ -411,7 +454,12 @@ export default {
       showOrderDetail,
       detailLoading,
       loadingPercentage,
-      handleDialogClose
+      handleDialogClose,
+      paginatedOrders,
+      currentPage,
+      pageSize,
+      handleSizeChange,
+      handleCurrentChange
     }
   }
 }
@@ -425,16 +473,84 @@ export default {
   font-weight: 600;
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 10px 0;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 2px 2px 4px rgba(102, 126, 234, 0.3);
+  letter-spacing: 2px;
+  position: relative;
+  left: 40px;
+}
+
+.page-header h2::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  bottom: -8px;
+  width: 170px;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 2px;
+}
+
 .main-content {
   display: flex;
   gap: 20px;
   align-items: flex-start;
 }
 
-.main-content > .el-table {
-
+.table-wrapper {
   flex: 1;
   min-width: 0;
+}
+
+.table-wrapper > .el-table {
+  flex: 1;
+  min-width: 0;
+}
+
+.rounded-table {
+  border: 3px solid #4b81a2;
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 280px;
+}
+
+.rounded-table :deep(.el-table__header-wrapper) {
+  border-bottom: 2px solid #4b81a2;
+}
+
+.rounded-table :deep(.el-table__row) {
+  border-bottom: 1px solid #ebeef5;
+}
+
+.rounded-table :deep(.el-table__row:last-child) {
+  border-bottom: none;
+}
+
+.rounded-table :deep(.el-table__body-wrapper) {
+  min-height: 240px;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  padding: 15px 0;
 }
 
 .date-drawer {
@@ -541,8 +657,8 @@ export default {
   display: flex;
   gap: 20px;
   margin-bottom: 20px;
-  padding: 20px;
-  background: #f8f9fa;
+  padding: 10px;
+  background: #ffffff;
   border-radius: 8px;
   align-items: center;
 }
@@ -566,8 +682,8 @@ export default {
   display: flex;
   gap: 20px;
   margin-bottom: 20px;
-  padding: 16px 20px;
-  background: #f8f9fa;
+  padding: 10px 20px;
+  background: #ffffff;
   border-radius: 8px;
   align-items: center;
 }

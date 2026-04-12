@@ -1,6 +1,8 @@
 <template>
   <div class="page-content">
-    <h2>用户管理</h2>
+    <div class="page-header">
+      <h2>用户管理</h2>
+    </div>
     
     <div class="stats-cards">
       <div class="stat-card user-card" @click="filterByRole('')">
@@ -37,7 +39,7 @@
         <label>搜索：</label>
         <el-input
           v-model="searchKeyword"
-          placeholder="请输入ID或用户名"
+          placeholder="请输入 ID 或用户名"
           clearable
           @clear="handleSearchClear"
         >
@@ -64,46 +66,68 @@
         添加用户
       </el-button>
     </div>
-    <el-table :data="filteredUsers" style="width: 100%" :key="tableKey">
-      <el-table-column prop="id" label="ID"  />
-      <el-table-column prop="username" label="用户名"  />
-      <el-table-column prop="phone" label="电话号码"  />
-      <el-table-column prop="role" label="角色" >
-        <template #default="scope">
-          <el-tag :type="scope.row.role === '管理员' ? 'danger' : 'primary'">
-            {{ scope.row.role }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="status" label="状态" >
-        <template #default="scope">
-          <el-tag
-            v-if="canEditStatus(scope.row)"
-            :type="scope.row.status === '正常' ? 'success' : 'danger'"
-            style="cursor: pointer"
-            @click="handleStatusChange(scope.row)"
-          >
-            {{ scope.row.status }}
-          </el-tag>
-          <el-tag v-else :type="scope.row.status === '正常' ? 'success' : 'danger'">
-            {{ scope.row.status }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" >
-        <template #default="scope">
-          <el-button size="small" @click="showEditDialog(scope.row)">编辑</el-button>
-          <el-button
-            v-if="canDeleteUser(scope.row)"
-            size="small"
-            type="danger"
-            @click="handleDelete(scope.row)"
-          >
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="table-wrapper">
+      <el-table :data="paginatedUsers" style="width: 100%" :key="tableKey">
+        <el-table-column prop="id" label="ID"  />
+        <el-table-column prop="username" label="用户名"  />
+        <el-table-column prop="phone" label="电话号码"  />
+        <el-table-column prop="role" label="角色" >
+          <template #default="scope">
+            <el-tag :type="scope.row.role === '管理员' ? 'danger' : 'primary'">
+              {{ scope.row.role }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" >
+          <template #default="scope">
+            <el-tag
+              v-if="canEditStatus(scope.row)"
+              :type="scope.row.status === '正常' ? 'success' : 'danger'"
+              style="cursor: pointer"
+              @click="handleStatusChange(scope.row)"
+            >
+              {{ scope.row.status }}
+            </el-tag>
+            <el-tag v-else :type="scope.row.status === '正常' ? 'success' : 'danger'">
+              {{ scope.row.status }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" >
+          <template #default="scope">
+            <el-button size="small" @click="showEditDialog(scope.row)">编辑</el-button>
+            <el-button
+              v-if="canDeleteUser(scope.row)"
+              size="small"
+              type="danger"
+              @click="handleDelete(scope.row)"
+            >
+              删除
+            </el-button>
+            <el-button
+              v-else
+              size="small"
+              type="info"
+              disabled
+              class="disabled-delete-btn"
+            >
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[5, 10, 20, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="filteredUsers.length"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </div>
 
     <el-dialog
       v-model="dialogVisible"
@@ -161,6 +185,15 @@ export default {
       status: ''
     })
     const filteredUsers = ref([...props.users])
+    
+    const currentPage = ref(1)
+    const pageSize = ref(5)
+    
+    const paginatedUsers = computed(() => {
+      const start = (currentPage.value - 1) * pageSize.value
+      const end = start + pageSize.value
+      return filteredUsers.value.slice(start, end)
+    })
 
     const totalUsers = computed(() => {
       return props.users.filter(u => u.role === '用户').length
@@ -263,6 +296,13 @@ export default {
       ElMessage.success(`状态已更新为${user.status}`)
     }
 
+    const handleSizeChange = () => {
+      currentPage.value = 1
+    }
+
+    const handleCurrentChange = () => {
+    }
+
     const canEditStatus = (user) => {
       const currentUserInfo = props.users.find(u => u.username === props.currentUser)
       if (!currentUserInfo) return false
@@ -289,6 +329,9 @@ export default {
       isEditMode,
       userForm,
       filteredUsers,
+      paginatedUsers,
+      currentPage,
+      pageSize,
       totalUsers,
       totalAdmins,
       handleSearchClear,
@@ -299,6 +342,8 @@ export default {
       handleSave,
       handleDelete,
       handleStatusChange,
+      handleSizeChange,
+      handleCurrentChange,
       canEditStatus,
       canDeleteUser
     }
@@ -403,12 +448,46 @@ export default {
   font-weight: 500;
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 10px 0;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 2px 2px 4px rgba(102, 126, 234, 0.3);
+  letter-spacing: 2px;
+  position: relative;
+  left: 40px;
+}
+
+.page-header h2::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  bottom: -8px;
+  width: 170px;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 2px;
+}
+
 .filter-bar {
   display: flex;
   gap: 20px;
   margin-bottom: 20px;
   padding: 20px;
-  background: #f8f9fa;
+  background: #ffffff;
   border-radius: 8px;
   align-items: center;
 }
@@ -434,5 +513,37 @@ export default {
 
 :deep(.el-table td.el-table__cell) {
   text-align: center;
+}
+
+.table-wrapper {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 3px solid #409eff;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.2);
+}
+
+:deep(.el-table) {
+  min-height: 250px;
+}
+
+:deep(.el-table__body-wrapper) {
+  min-height: 200px;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #f0f0f0;
+}
+
+.disabled-delete-btn {
+  background-color: #dcdfe6 !important;
+  border-color: #dcdfe6 !important;
+  color: #909399 !important;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 </style>

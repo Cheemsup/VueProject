@@ -325,7 +325,7 @@ export default {
 /* 激活的消息列表项 */
 .message-list-item.active {
   background: #e6f1ff;
-  border-right: 3px solid #409eff;
+  border-left: 6px solid #409eff;
 }
 
 /* 头像区域 */

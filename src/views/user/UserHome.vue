@@ -65,7 +65,7 @@
       </h3>
       <div class="products-grid">
         <div
-          v-for="product in hotProducts"
+          v-for="product in hotProductsFiltered"
           :key="product.id"
           class="product-card"
           @click="addToCart(product)"
@@ -260,8 +260,15 @@ export default {
       return cat ? cat.name : '商品'
     })
 
+    const hotProductsFiltered = computed(() => {
+      return hotProducts.filter(p => p.status === 'onshelf')
+    })
+
     const filteredProducts = computed(() => {
       let result = getProductsByCategory(activeCategory.value)
+
+      // 只显示上架的商品
+      result = result.filter(p => p.status === 'onshelf')
 
       if (searchKeyword.value) {
         const keyword = searchKeyword.value.toLowerCase()
@@ -304,6 +311,7 @@ export default {
       categories,
       products,
       hotProducts,
+      hotProductsFiltered,
       bannerList,
       activeBannerIndex,
       bannerHoverStates,

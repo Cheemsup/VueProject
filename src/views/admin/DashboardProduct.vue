@@ -1,13 +1,21 @@
 <template>
   <div class="page-content">
-    <h2>产品管理</h2>
+    <div class="page-header">
+      <h2>产品管理</h2>
+      <div class="header-actions">
+        <el-button type="primary" @click="showAddProductDialog">
+          <el-icon><Plus /></el-icon>
+          <span>添加商品</span>
+        </el-button>
+      </div>
+    </div>
     <div class="filter-bar">
       <div class="filter-left">
         <div class="filter-item">
           <label>搜索：</label>
           <el-input
             v-model="productSearch"
-            placeholder="请输入产品名称或 ID"
+            placeholder="请输入产品名称或ID"
             clearable
           >
             <template #prefix>
@@ -79,6 +87,7 @@
           :class="{ active: productCategory === '' }"
           @click="productCategory = ''"
         >
+          <el-icon class="category-icon"><Goods /></el-icon>
           <span class="category-text">全部</span>
         </div>
         <div 
@@ -88,8 +97,29 @@
           :class="{ active: productCategory === cat.id }"
           @click="productCategory = cat.id"
         >
+          <el-icon class="category-icon"><component :is="getIconComponent(cat.icon)" /></el-icon>
           <span class="category-text">{{ cat.name }}</span>
         </div>
+      </div>
+      <div class="batch-actions-container">
+        <el-button 
+          type="success" 
+          @click="batchShelf('onshelf')"
+          :loading="batchLoading"
+          size="small"
+        >
+          <el-icon><UploadFilled /></el-icon>
+          <span>一键上架</span>
+        </el-button>
+        <el-button 
+          type="warning" 
+          @click="batchShelf('offshelf')"
+          :loading="batchLoading"
+          size="small"
+        >
+          <el-icon><DeleteFilled /></el-icon>
+          <span>一键下架</span>
+        </el-button>
       </div>
     </div>
     <div class="product-grid" :class="{ 'small-mode': viewMode === 'small' }">
@@ -205,29 +235,115 @@
         <el-button @click="detailDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog 
+      v-model="addProductDialogVisible" 
+      title="添加商品" 
+      width="600px"
+      class="add-product-dialog"
+    >
+      <el-form :model="newProductForm" label-width="100px" class="product-form">
+        <el-form-item label="商品ID" required>
+          <el-input v-model="newProductForm.id" placeholder="如：P019" />
+        </el-form-item>
+        <el-form-item label="商品名称" required>
+          <el-input v-model="newProductForm.name" placeholder="请输入商品名称" />
+        </el-form-item>
+        <el-form-item label="商品分类" required>
+          <el-select v-model="newProductForm.category" placeholder="请选择分类" style="width: 100%">
+            <el-option
+              v-for="cat in categories"
+              :key="cat.id"
+              :label="cat.name"
+              :value="cat.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="商品价格" required>
+          <el-input-number v-model="newProductForm.price" :min="0" :precision="2" :step="0.1" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="计量单位" required>
+          <el-input v-model="newProductForm.unit" placeholder="如：瓶、袋、盒" />
+        </el-form-item>
+        <el-form-item label="库存数量" required>
+          <el-input-number v-model="newProductForm.stock" :min="0" :step="1" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="商品描述">
+          <el-input 
+            v-model="newProductForm.description" 
+            type="textarea" 
+            :rows="3"
+            placeholder="请输入商品描述" 
+          />
+        </el-form-item>
+        <el-form-item label="条码">
+          <el-input v-model="newProductForm.barCode" placeholder="请输入商品条码" />
+        </el-form-item>
+        <el-form-item label="商品标签">
+          <el-input v-model="newProductForm.tagsInput" placeholder="请输入标签，用逗号分隔" />
+        </el-form-item>
+        <el-form-item label="上架状态">
+          <el-switch v-model="newProductForm.onshelf" active-text="上架" inactive-text="下架" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="addProductDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleAddProduct">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue'
-import { Goods, Search, Grid, List, CircleCheckFilled, UploadFilled, DeleteFilled } from '@element-plus/icons-vue'
+import { ref, computed, shallowRef, triggerRef } from 'vue'
+import { Goods, Search, Grid, List, CircleCheckFilled, UploadFilled, DeleteFilled, Coffee, Sugar, Apple, MilkTea, Food, Plus } from '@element-plus/icons-vue'
 import { products as productsData, categories as categoriesData } from '../../data/products'
+import { ElMessage } from 'element-plus'
 
 export default {
   name: 'DashboardProduct',
   components: { 
     Goods, Search, Grid, List, 
-    CircleCheckFilled, UploadFilled, DeleteFilled 
+    CircleCheckFilled, UploadFilled, DeleteFilled,
+    Coffee, Sugar, Apple, MilkTea, Food, Plus
   },
   setup() {
-    const products = productsData
+    const products = shallowRef(productsData)
     const categories = categoriesData
     const productSearch = ref('')
     const productCategory = ref('')
-    const productStatus = ref('') // 产品状态筛选
+    const productStatus = ref('')
     const selectedProduct = ref(null)
     const detailDialogVisible = ref(false)
     const viewMode = ref('large')
+    const batchLoading = ref(false)
+    
+    const addProductDialogVisible = ref(false)
+    const newProductForm = ref({
+      id: '',
+      name: '',
+      category: '',
+      price: 0,
+      unit: '件',
+      stock: 0,
+      description: '',
+      barCode: '',
+      tagsInput: '',
+      onshelf: true
+    })
+
+    const iconMap = {
+      'Coffee': Coffee,
+      'Sugar': Sugar,
+      'Goods': Goods,
+      'Apple': Apple,
+      'MilkTea': MilkTea,
+      'Food': Food
+    }
+
+    const getIconComponent = (iconName) => {
+      return iconMap[iconName] || Goods
+    }
 
     const getCategoryName = (categoryId) => {
       const category = categories.find(c => c.id === categoryId)
@@ -236,7 +352,7 @@ export default {
 
     // 使用 computed 自动响应筛选条件变化，避免 watch 的循环触发问题
     const filteredProducts = computed(() => {
-      return products.filter(product => {
+      return products.value.filter(product => {
         // 搜索筛选
         const matchSearch = productSearch.value === '' ||
           product.name.toLowerCase().includes(productSearch.value.toLowerCase()) ||
@@ -254,12 +370,76 @@ export default {
     // 切换产品上下架状态
     const toggleProductStatus = (product, newStatus) => {
       product.status = newStatus
-      // computed 会自动重新计算，无需手动触发
+      triggerRef(products)
+    }
+
+    // 批量上架/下架
+    const batchShelf = async (status) => {
+      batchLoading.value = true
+      
+      // 模拟加载延迟
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      products.value.forEach(product => {
+        product.status = status
+      })
+      triggerRef(products)
+      
+      batchLoading.value = false
     }
 
     const showProductDetail = (product) => {
       selectedProduct.value = product
       detailDialogVisible.value = true
+    }
+
+    const showAddProductDialog = () => {
+      newProductForm.value = {
+        id: '',
+        name: '',
+        category: '',
+        price: 0,
+        unit: '件',
+        stock: 0,
+        description: '',
+        barCode: '',
+        tagsInput: '',
+        onshelf: true
+      }
+      addProductDialogVisible.value = true
+    }
+
+    const handleAddProduct = () => {
+      if (!newProductForm.value.id || !newProductForm.value.name || !newProductForm.value.category) {
+        ElMessage.warning('请填写商品ID、商品名称和分类')
+        return
+      }
+
+      const tags = newProductForm.value.tagsInput
+        ? newProductForm.value.tagsInput.split(/[,,]/).map(t => t.trim()).filter(t => t)
+        : []
+
+      const newProduct = {
+        id: newProductForm.value.id,
+        name: newProductForm.value.name,
+        category: newProductForm.value.category,
+        price: newProductForm.value.price,
+        unit: newProductForm.value.unit,
+        stock: newProductForm.value.stock,
+        image: '',
+        description: newProductForm.value.description,
+        barCode: newProductForm.value.barCode,
+        discount: 1,
+        isHot: false,
+        tags: tags,
+        status: newProductForm.value.onshelf ? 'onshelf' : 'offshelf'
+      }
+
+      productsData.push(newProduct)
+      triggerRef(products)
+
+      ElMessage.success('商品添加成功')
+      addProductDialogVisible.value = false
     }
 
     return {
@@ -272,9 +452,16 @@ export default {
       selectedProduct,
       detailDialogVisible,
       viewMode,
+      batchLoading,
+      addProductDialogVisible,
+      newProductForm,
       getCategoryName,
+      getIconComponent,
       toggleProductStatus,
-      showProductDetail
+      batchShelf,
+      showProductDetail,
+      showAddProductDialog,
+      handleAddProduct
     }
   }
 }
@@ -286,6 +473,50 @@ export default {
   color: #303133;
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 10px 0;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 2px 2px 4px rgba(102, 126, 234, 0.3);
+  letter-spacing: 2px;
+  left: 40px;
+  position: relative;
+}
+
+.page-header h2::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  bottom: -8px;
+  width: 170px;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 2px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.add-product-dialog .product-form {
+  padding: 10px 5px;
+}
+
 .filter-bar {
   display: flex;
   justify-content: space-between;
@@ -293,8 +524,9 @@ export default {
   gap: 20px;
   margin-bottom: 20px;
   padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: #ffffff;
+  border-radius: 12px;
+  border-color: #764ba2;
 }
 
 .filter-left {
@@ -320,6 +552,25 @@ export default {
 
 .filter-right {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.batch-actions-container {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  flex-shrink: 0;
+}
+
+.batch-actions-container .el-button {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.batch-actions-container .el-button .el-icon {
+  margin-right: 4px;
 }
 
 .category-bar {
@@ -328,6 +579,9 @@ export default {
   background: #fff;
   border-radius: 8px 8px 0 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .category-scroll {
@@ -337,6 +591,7 @@ export default {
   padding: 0;
   scrollbar-width: thin;
   position: relative;
+  flex: 1;
 }
 
 .category-scroll::-webkit-scrollbar {
@@ -362,6 +617,15 @@ export default {
   white-space: nowrap;
   margin-right: 2px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.category-icon {
+  font-size: 18px;
+  margin-bottom: 2px;
 }
 
 .category-item::before {
@@ -434,10 +698,10 @@ export default {
 
 .filter-item label {
   font-size: 14px;
-  color: #606266;
+  color: #666a71;
   font-weight: 500;
   white-space: nowrap;
-  min-width: 60px;
+  min-width: 40px;
 }
 
 .product-grid {
