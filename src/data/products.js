@@ -12,10 +12,10 @@ const getImage = (imageName) => {
 
 export const categories = [
   { id: 'drinks', name: '饮料', icon: 'Coffee' },
-  { id: 'snacks', name: '零食', icon: 'Biscuit' },
+  { id: 'snacks', name: '零食', icon: 'Sugar' },
   { id: 'daily', name: '日用品', icon: 'Goods' },
   { id: 'fresh', name: '生鲜', icon: 'Apple' },
-  { id: 'dairy', name: '乳制品', icon: 'Milk' },
+  { id: 'dairy', name: '乳制品', icon: 'MilkTea' },
   { id: 'instant', name: '速食', icon: 'Food' }
 ]
 

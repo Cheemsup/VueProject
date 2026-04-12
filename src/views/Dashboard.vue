@@ -333,15 +333,15 @@ export default {
 }
 
 .main-content {
-  background-color: #f0f2f5;
+  background: linear-gradient(135deg, #bee7e9 0%, #d0e0f7 50%, #7ebcf7 100%);
   padding: 20px;
   overflow-y: auto;
 }
 
 .content-wrapper {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 4px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
   min-height: calc(100vh - 140px);
 }
 </style>

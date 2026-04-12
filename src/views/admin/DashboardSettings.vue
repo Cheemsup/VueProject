@@ -1,6 +1,8 @@
 <template>
   <div class="page-content">
-    <h2>系统设置</h2>
+    <div class="page-header">
+      <h2>系统设置</h2>
+    </div>
     
     <!-- 管理员身份卡片 -->
     <div class="admin-card">
@@ -216,5 +218,39 @@ export default {
 
 .password-toggle:hover {
   color: #409eff;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 10px 0;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 2px 2px 4px rgba(102, 126, 234, 0.3);
+  letter-spacing: 2px;
+  position: relative;
+  left: 40px;
+}
+
+.page-header h2::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  bottom: -8px;
+  width: 170px;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 2px;
 }
 </style>
